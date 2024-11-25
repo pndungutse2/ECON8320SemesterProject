@@ -4,7 +4,7 @@ import plotly.express as px
 
 # Load the data
 @st.cache_data
-def load_data(file_path="https://raw.githubusercontent.com/username/repo/main/labor_stats.csv"):
+def load_data(file_path="labor_stats.csv"):
     df = pd.read_csv(file_path)
     df["date"] = pd.to_datetime(df["date"])
     return df
