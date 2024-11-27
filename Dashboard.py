@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+
 # Load the data
 @st.cache_data
 def load_data(file_path="labor_stats.csv"):
@@ -25,8 +26,23 @@ def calculate_summary(data):
         }
     return pd.DataFrame.from_dict(summary, orient="index")
 
+
 # Main Dashboard App
 def main():
+    st.set_page_config(page_title="Labor Statistics Dashboard", layout="wide")
+
+    # Set background color to greyish white
+    st.markdown(
+        """
+        <style>
+        .main {{
+            background-color: #f7f7f7;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     st.title("Labor Statistics Dashboard")
     st.write("An interactive dashboard for U.S. labor statistics.")
 
@@ -36,10 +52,28 @@ def main():
     # Sidebar for user input
     st.sidebar.header("Filters")
     series_options = data["series"].unique()
-    selected_series = st.sidebar.multiselect("Select data series", series_options, default=series_options)
+    all_option = "Select All"
+    series_options = [all_option] + list(series_options)
+    selected_series = st.sidebar.multiselect("Select data series", series_options, default=[all_option])
+
+    if all_option in selected_series:
+        selected_series = data["series"].unique()
 
     # Filter data based on user selection
     filtered_data = data[data["series"].isin(selected_series)]
+
+    # Layout: KPI Metrics
+    st.subheader("Key Metrics")
+    if not filtered_data.empty:
+        total_records = len(filtered_data)
+        latest_data = filtered_data.sort_values(by="date", ascending=False).groupby("series").first()
+        avg_latest_value = latest_data["value"].mean()
+
+        col1, col2 = st.columns(2)
+        col1.metric("Total Records", total_records)
+        col2.metric("Avg Latest Value", f"{avg_latest_value:.2f}")
+    else:
+        st.warning("No data available for the selected series.")
 
     # Summary Statistics
     st.subheader("Summary Statistics")
@@ -50,17 +84,48 @@ def main():
     else:
         st.warning("Please select at least one series to display.")
 
-    # Visualization
-    st.subheader("Time-Series Plot")
+    # Visualization: Pie Chart
+    st.subheader("Labor Statistics Distribution")
     if not filtered_data.empty:
-        fig = px.line(filtered_data, x="date", y="value", color="series", title="Labor Statistics Over Time")
-        st.plotly_chart(fig, use_container_width=True)
+        # Aggregate the latest values by series for the pie chart
+        latest_data = filtered_data.sort_values(by="date", ascending=False).groupby("series").first()
+        pie_data = latest_data.reset_index()[["series", "value"]]
+
+        # Create the pie chart with customized colors
+        fig_pie = px.pie(pie_data, values="value", names="series",
+                         color_discrete_sequence=px.colors.sequential.RdBu)
+        st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.warning("Please select at least one series to display.")
 
-    # Display raw data
-    st.subheader("Data Table")
-    st.write(filtered_data)
+    # Visualization: Line Graph or Faceted Line Graph
+    st.subheader("Labor Statistics Trends")
+    if not filtered_data.empty:
+        if len(selected_series) == len(data["series"].unique()):
+            # Display faceted line graph if "Select All" is selected
+            fig_line = px.line(filtered_data, x="date", y="value", color="series", facet_col="series", facet_col_wrap=3)
+            # Adjust scale of each individual subplot in faceted line graph
+            fig_line.for_each_yaxis(lambda axis: axis.update(matches=None))
+        else:
+            # Regular line graph for other selections
+            fig_line = px.line(filtered_data, x="date", y="value", color="series",
+                               title="Labor Statistics Trends")
+
+        st.plotly_chart(fig_line, use_container_width=True)
+    else:
+        st.warning("Please select at least one series to display.")
+
+    # Visualization: Bar Chart
+    st.subheader("Average Value by Series")
+    if not filtered_data.empty:
+        bar_data = filtered_data.groupby("series")["value"].mean().reset_index()
+        fig_bar = px.bar(bar_data, x="series", y="value",
+                         color="series", color_discrete_sequence=px.colors.sequential.RdBu)
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        st.warning("Please select at least one series to display.")
+
+
 
 if __name__ == "__main__":
     main()
