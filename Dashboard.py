@@ -35,9 +35,9 @@ def main():
     st.markdown(
         """
         <style>
-        .main {{
+        .main {
             background-color: #f7f7f7;
-        }}
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -61,6 +61,14 @@ def main():
 
     # Filter data based on user selection
     filtered_data = data[data["series"].isin(selected_series)]
+
+    # Add data export option
+    st.sidebar.download_button(
+        label="Download Filtered Data",
+        data=filtered_data.to_csv(index=False),
+        file_name="filtered_labor_stats.csv",
+        mime="text/csv"
+    )
 
     # Layout: KPI Metrics
     st.subheader("Key Metrics")
@@ -91,9 +99,12 @@ def main():
         latest_data = filtered_data.sort_values(by="date", ascending=False).groupby("series").first()
         pie_data = latest_data.reset_index()[["series", "value"]]
 
-        # Create the pie chart with customized colors
-        fig_pie = px.pie(pie_data, values="value", names="series",
-                         color_discrete_sequence=px.colors.sequential.RdBu)
+        # Create the pie chart with tooltips
+        fig_pie = px.pie(
+            pie_data, values="value", names="series",
+            color_discrete_sequence=px.colors.sequential.RdBu,
+            hover_data={"value": True, "series": True}
+        )
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.warning("Please select at least one series to display.")
@@ -103,13 +114,20 @@ def main():
     if not filtered_data.empty:
         if len(selected_series) == len(data["series"].unique()):
             # Display faceted line graph if "Select All" is selected
-            fig_line = px.line(filtered_data, x="date", y="value", color="series", facet_col="series", facet_col_wrap=3)
+            fig_line = px.line(
+                filtered_data, x="date", y="value", color="series",
+                facet_col="series", facet_col_wrap=3,
+                hover_data={"value": True, "date": True, "series": True}
+            )
             # Adjust scale of each individual subplot in faceted line graph
             fig_line.for_each_yaxis(lambda axis: axis.update(matches=None))
         else:
             # Regular line graph for other selections
-            fig_line = px.line(filtered_data, x="date", y="value", color="series",
-                               title="Labor Statistics Trends")
+            fig_line = px.line(
+                filtered_data, x="date", y="value", color="series",
+                title="Labor Statistics Trends",
+                hover_data={"value": True, "date": True, "series": True}
+            )
 
         st.plotly_chart(fig_line, use_container_width=True)
     else:
@@ -119,12 +137,14 @@ def main():
     st.subheader("Average Value by Series")
     if not filtered_data.empty:
         bar_data = filtered_data.groupby("series")["value"].mean().reset_index()
-        fig_bar = px.bar(bar_data, x="series", y="value",
-                         color="series", color_discrete_sequence=px.colors.sequential.RdBu)
+        fig_bar = px.bar(
+            bar_data, x="series", y="value", color="series",
+            color_discrete_sequence=px.colors.sequential.RdBu,
+            hover_data={"value": True, "series": True}
+        )
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.warning("Please select at least one series to display.")
-
 
 
 if __name__ == "__main__":
