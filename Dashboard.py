@@ -3,16 +3,34 @@ import pandas as pd
 import plotly.express as px
 
 
-# Load the data
+# Load the data with caching for better performance
 @st.cache_data
 def load_data(file_path="labor_stats.csv"):
+    """
+    Load labor statistics data from a CSV file.
+
+    Args:
+        file_path (str): Path to the CSV file containing the data.
+
+    Returns:
+        pd.DataFrame: A pandas DataFrame with the loaded data.
+    """
     df = pd.read_csv(file_path)
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"])  # Ensure 'date' column is in datetime format
     return df
 
 
-# Function to calculate summary statistics
+# Function to calculate summary statistics for each data series
 def calculate_summary(data):
+    """
+    Calculate summary statistics for each data series.
+
+    Args:
+        data (pd.DataFrame): The filtered data.
+
+    Returns:
+        pd.DataFrame: A summary table with the latest value, previous value, and change.
+    """
     summary = {}
     for series in data["series"].unique():
         series_data = data[data["series"] == series]
@@ -29,9 +47,12 @@ def calculate_summary(data):
 
 # Main Dashboard App
 def main():
+    """
+    Main function to run the Streamlit dashboard application.
+    """
     st.set_page_config(page_title="Labor Statistics Dashboard", layout="wide")
 
-    # Set background color to greyish white
+    # Set background color for a better user experience
     st.markdown(
         """
         <style>
@@ -43,8 +64,12 @@ def main():
         unsafe_allow_html=True
     )
 
+    # Title and description
     st.title("Labor Statistics Dashboard")
-    st.write("An interactive dashboard for U.S. labor statistics.")
+    st.write(
+        "Welcome to the interactive dashboard for U.S. labor statistics. "
+        "Use the filters on the left to customize your view."
+    )
 
     # Load the dataset
     data = load_data()
@@ -70,7 +95,7 @@ def main():
         mime="text/csv"
     )
 
-    # Layout: KPI Metrics
+    # Display key metrics
     st.subheader("Key Metrics")
     if not filtered_data.empty:
         total_records = len(filtered_data)
@@ -83,7 +108,7 @@ def main():
     else:
         st.warning("No data available for the selected series.")
 
-    # Summary Statistics
+    # Summary statistics
     st.subheader("Summary Statistics")
     if not filtered_data.empty:
         latest_data = filtered_data.sort_values(by="date", ascending=False).groupby("series").head(2)
@@ -92,14 +117,12 @@ def main():
     else:
         st.warning("Please select at least one series to display.")
 
-    # Visualization: Pie Chart
+    # Pie chart visualization
     st.subheader("Labor Statistics Distribution")
     if not filtered_data.empty:
-        # Aggregate the latest values by series for the pie chart
         latest_data = filtered_data.sort_values(by="date", ascending=False).groupby("series").first()
         pie_data = latest_data.reset_index()[["series", "value"]]
 
-        # Create the pie chart with tooltips
         fig_pie = px.pie(
             pie_data, values="value", names="series",
             color_discrete_sequence=px.colors.sequential.RdBu,
@@ -109,31 +132,27 @@ def main():
     else:
         st.warning("Please select at least one series to display.")
 
-    # Visualization: Line Graph or Faceted Line Graph
+    # Line graph visualization
     st.subheader("Labor Statistics Trends")
     if not filtered_data.empty:
         if len(selected_series) == len(data["series"].unique()):
-            # Display faceted line graph if "Select All" is selected
             fig_line = px.line(
                 filtered_data, x="date", y="value", color="series",
                 facet_col="series", facet_col_wrap=3,
                 hover_data={"value": True, "date": True, "series": True}
             )
-            # Adjust scale of each individual subplot in faceted line graph
             fig_line.for_each_yaxis(lambda axis: axis.update(matches=None))
         else:
-            # Regular line graph for other selections
             fig_line = px.line(
                 filtered_data, x="date", y="value", color="series",
                 title="Labor Statistics Trends",
                 hover_data={"value": True, "date": True, "series": True}
             )
-
         st.plotly_chart(fig_line, use_container_width=True)
     else:
         st.warning("Please select at least one series to display.")
 
-    # Visualization: Bar Chart
+    # Bar chart visualization
     st.subheader("Average Value by Series")
     if not filtered_data.empty:
         bar_data = filtered_data.groupby("series")["value"].mean().reset_index()
