@@ -7,9 +7,11 @@ API_KEY = "318acea001604c8c8783ca5d415397d0"
 
 # Series IDs (Required and Additional)
 SERIES = {
-    "nonfarm": "CES0000000001",   # Total non-farm employment
-    "unemployment_rate": "LNS14000000",  # Unemployment rate
-    "participation_rate": "LNS11300000"  # Labor force participation rate
+    "Non_farm": "CES0000000001",   # Total non-farm employment
+    "Unemployment_rate": "LNS14000000",  # Unemployment rate
+    "Participation_rate": "LNS11300000", # Labor force participation rate
+    "Civilian_unemployment": "LNS13000000", # Civilian Unemployment
+    "Civilian_employment": "LNS12000000" # Unemployment Rate
 }
 
 # Function to fetch data from the BLS API
